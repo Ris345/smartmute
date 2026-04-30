@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      width: 280px;
+      background: #111;
+      color: #ddd;
+      font-family: system-ui, -apple-system, sans-serif;
+      padding: 18px;
+      user-select: none;
+    }
+
+    .btn-row {
+      display: flex;
+      gap: 10px;
+    }
+
+    .mute-btn {
+      flex: 1;
+      padding: 14px 0;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      border: 2px solid transparent;
+      border-radius: 8px;
+      cursor: pointer;
+      background: #1e1e1e;
+      color: #555;
+      transition: background 0.15s, color 0.15s, box-shadow 0.15s, border-color 0.15s;
+    }
+    .mute-btn:active { filter: brightness(0.85); }
+
+    #btn-soft.active {
+      background: #1a3a2a;
+      color: #2ecc71;
+      border-color: #27ae60;
+      box-shadow: 0 0 14px rgba(39, 174, 96, 0.45);
+    }
+
+    #btn-hard.active {
+      background: #2d1414;
+      color: #e74c3c;
+      border-color: #c0392b;
+      box-shadow: 0 0 14px rgba(192, 57, 43, 0.45);
+    }
+
+    .divider {
+      border: none;
+      border-top: 1px solid #222;
+      margin: 16px 0;
+    }
+
+    #mic-live {
+      margin-top: 14px;
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 1px;
+      color: #444;
+      transition: color 0.2s;
+    }
+    #mic-live.on { color: #2ecc71; }
+
+    #mic-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #333;
+      transition: background 0.2s, box-shadow 0.2s;
+    }
+    #mic-live.on #mic-dot {
+      background: #2ecc71;
+      box-shadow: 0 0 6px rgba(46, 204, 113, 0.8);
+    }
+  </style>
+</head>
+<body>
+  <div class="btn-row">
+    <button class="mute-btn active" id="btn-soft">SOFT MUTE</button>
+    <button class="mute-btn" id="btn-hard">HARD MUTE</button>
+  </div>
+
+  <hr class="divider">
+
+  <div id="mic-live">
+    <div id="mic-dot"></div>
+    <span id="mic-label">MIC STANDBY</span>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
