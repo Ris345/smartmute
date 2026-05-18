@@ -1,41 +1,44 @@
-const btnSoft = document.getElementById('btn-soft');
-const btnHard = document.getElementById('btn-hard');
+const btnAuto = document.getElementById('btn-auto');
 const micLive = document.getElementById('mic-live');
 const micLabel = document.getElementById('mic-label');
 
-let currentPopupState = 'SOFT_MUTED';
-
 function render(state) {
-  currentPopupState = state;
-  const isHard = state === 'HARD_MUTED';
-  const isLive = state === 'UNMUTED';
+  const isActive = state !== 'DISABLED';
+  const isLive   = state === 'UNMUTED';
 
-  btnSoft.classList.toggle('active', !isHard);
-  btnHard.classList.toggle('active', isHard);
-  btnHard.textContent = isHard ? 'UNMUTE' : 'HARD MUTE';
+  btnAuto.classList.toggle('active', isActive);
+  btnAuto.textContent = isActive ? 'AUTO MUTE ON' : 'AUTO MUTE OFF';
 
   micLive.classList.toggle('on', isLive);
-  micLabel.textContent = isLive ? 'MIC LIVE' : 'MIC STANDBY';
+  micLabel.textContent = isLive ? 'MIC LIVE' : isActive ? 'MIC STANDBY' : 'AUTO OFF';
 }
 
 chrome.storage.local.get('state', ({ state }) => {
   render(state ?? 'SOFT_MUTED');
 });
 
-// Only fires when soft mute is NOT already active (i.e. when exiting hard mute)
-btnSoft.addEventListener('click', () => {
-  if (currentPopupState !== 'HARD_MUTED') return;
-  chrome.runtime.sendMessage({ type: 'HARD_MUTE_TOGGLE' });
-});
+btnAuto.addEventListener('click', async () => {
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
 
-// Hard mute button always toggles (enter hard mute OR exit via UNMUTE)
-btnHard.addEventListener('click', () => {
-  chrome.runtime.sendMessage({ type: 'HARD_MUTE_TOGGLE' });
-});
+  const isRunning = await chrome.tabs.sendMessage(tab.id, { type: 'PING' })
+    .then(() => true)
+    .catch(() => false);
 
+  if (!isRunning) {
+    // Only inject when the user is turning auto mute ON (DISABLED → SOFT_MUTED)
+    const { state } = await chrome.storage.local.get('state');
+    if (state === 'DISABLED') {
+      try {
+        await chrome.scripting.executeScript({ target: { tabId: tab.id }, files: ['content.js'] });
+      } catch (e) {
+        console.warn('[popup] inject failed:', e.message);
+      }
+    }
+  }
+
+  chrome.runtime.sendMessage({ type: 'AUTO_TOGGLE' });
+});
 
 chrome.runtime.onMessage.addListener((message) => {
-  if (message.type === 'SET_STATE') {
-    render(message.state);
-  }
+  if (message.type === 'SET_STATE') render(message.state);
 });
