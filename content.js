@@ -2,24 +2,26 @@
   if (window.__vadInitialized) return;
   window.__vadInitialized = true;
 
-  const STATE = { DISABLED: 'DISABLED', SOFT_MUTED: 'SOFT_MUTED', UNMUTED: 'UNMUTED' };
+  const STATE = { DISABLED: 'DISABLED', SOFT_MUTED: 'SOFT_MUTED', UNMUTED: 'UNMUTED', HARD_MUTED: 'HARD_MUTED' };
 
-  const FRAME_MS = 30;
-  const SPEECH_THRESHOLD_MS = 400;   // 0.4s of consecutive speech to unmute (was 0.2s)
-  const SILENCE_THRESHOLD_MS = 2000; // 2s of silence to re-mute
+  const FRAME_MS             = 30;
+  const SPEECH_THRESHOLD_MS  = 400;
+  const SILENCE_THRESHOLD_MS = 2000;
 
-  // Noise floor adapts DOWN quickly (quiet room) and UP quickly (background noise appears).
-  // Was: ADAPT_UP = 0.999 → ~90s to catch up. Now 0.97 → ~1s time constant.
   const NOISE_ADAPT_DOWN = 0.95;
   const NOISE_ADAPT_UP   = 0.97;
-  const SNR_MULTIPLIER   = 3.5;   // speech must be 3.5× noise floor (was 2.5)
-  const MIN_THRESHOLD    = 0.02;  // absolute RMS floor (was 0.01)
+  const SNR_MULTIPLIER   = 3.5;
+  const MIN_THRESHOLD    = 0.02;
 
-  let currentState = STATE.SOFT_MUTED;
-  let speechMs = 0;
-  let silenceMs = 0;
-  let noiseFloor = 0.03;  // start higher so early transients don't immediately fire (was 0.02)
-  let vadRunning = false;
+  let currentState  = STATE.SOFT_MUTED;
+  let speechMs      = 0;
+  let silenceMs     = 0;
+  let noiseFloor    = 0.03;
+  let vadRunning    = false;
+  let userThreshold = null;
+
+  // Exposed for background.js SET_THRESHOLD injection and tests.
+  window.__vadSetThreshold = (v) => { userThreshold = v; };
 
   function clickMicToggle() {
     const candidates = [
@@ -67,6 +69,7 @@
 
   chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
     if (msg.type === 'PING') { sendResponse({ ok: true }); return true; }
+    if (msg.type === 'SET_STATE') { currentState = msg.state; }
   });
 
   chrome.storage.onChanged.addListener((changes, area) => {
@@ -75,8 +78,6 @@
 
     if (newValue === STATE.SOFT_MUTED && oldValue === STATE.DISABLED) {
       platformMute();
-      // VAD may never have started (e.g. getUserMedia failed at page load).
-      // Retry now that the user has deliberately turned auto-mute ON.
       if (!vadRunning) init().catch(e => console.error('[VAD] retry failed:', e.message));
     }
 
@@ -110,11 +111,11 @@
         for (let i = 0; i < buffer.length; i++) sum += buffer[i] * buffer[i];
         const rms = Math.sqrt(sum / buffer.length);
 
-        const threshold = Math.max(MIN_THRESHOLD, noiseFloor * SNR_MULTIPLIER);
+        const threshold = userThreshold !== null
+          ? userThreshold
+          : Math.max(MIN_THRESHOLD, noiseFloor * SNR_MULTIPLIER);
         const isSpeech = rms > threshold;
 
-        // Only update the noise floor during non-speech frames so speech energy
-        // doesn't inflate the floor and hide future speech from detection.
         if (!isSpeech) {
           noiseFloor = rms < noiseFloor
             ? NOISE_ADAPT_DOWN * noiseFloor + (1 - NOISE_ADAPT_DOWN) * rms
@@ -122,11 +123,11 @@
         }
 
         if (isSpeech) {
-          speechMs += FRAME_MS;
-          silenceMs = 0;
+          speechMs  += FRAME_MS;
+          silenceMs  = 0;
         } else {
           silenceMs += FRAME_MS;
-          speechMs = 0;
+          speechMs   = 0;
         }
 
         if (speechMs >= SPEECH_THRESHOLD_MS && currentState === STATE.SOFT_MUTED) {
@@ -147,7 +148,6 @@
       }, FRAME_MS);
     }
 
-    // Keep the context alive if suspended mid-session.
     audioContext.addEventListener('statechange', () => {
       if (audioContext.state === 'suspended') audioContext.resume().catch(() => {});
     });
@@ -155,9 +155,6 @@
     if (audioContext.state === 'running') {
       startLoop();
     } else {
-      // AudioContext is suspended (no user gesture on this page yet).
-      // Don't throw — just wait for it to become running, which happens
-      // automatically on the next user interaction with the page.
       audioContext.resume().catch(() => {});
       const onRunning = () => {
         if (audioContext.state === 'running') {
@@ -170,9 +167,6 @@
     }
   }
 
-  // Auto-injected at page load. getUserMedia may fail here if the user hasn't
-  // joined the meeting yet (no mic permission). The storage-change listener
-  // above will retry when the user toggles auto-mute ON from the popup.
   init().catch((err) => {
     console.warn('[VAD] init failed, waiting for user gesture:', err.message);
     const onGesture = () => {
