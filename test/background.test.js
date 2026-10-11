@@ -34,7 +34,7 @@ beforeEach(() => {
   jest.resetModules();
   chrome = buildChrome();
   global.chrome = chrome;
-  require('../background.js');
+  require('../src/background.js');
 });
 
 async function dispatch(msg) {
