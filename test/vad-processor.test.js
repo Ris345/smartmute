@@ -13,7 +13,7 @@ beforeAll(() => {
     registeredName = name;
     VADProcessor = cls;
   });
-  require('../audio-processor.js');
+  require('../src/audio-processor.js');
 });
 
 beforeEach(() => jest.clearAllMocks());

@@ -15,14 +15,14 @@
     "https://web.skype.com/*"
   ],
   "background": {
-    "service_worker": "background.js"
+    "service_worker": "src/background.js"
   },
   "action": {
-    "default_popup": "popup.html"
+    "default_popup": "src/popup/popup.html"
   },
   "web_accessible_resources": [
     {
-      "resources": ["audio-processor.js"],
+      "resources": ["src/audio-processor.js"],
       "matches": [
         "https://meet.google.com/*",
         "https://teams.microsoft.com/*",
@@ -47,7 +47,7 @@
         "https://discord.com/*",
         "https://web.skype.com/*"
       ],
-      "js": ["content.js"]
+      "js": ["src/content.js"]
     }
   ]
 }

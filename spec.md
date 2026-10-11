@@ -10,12 +10,12 @@ VAD_FRAME_MS = 30          # AudioWorklet frame size
 RMS_THRESHOLD = 0.015      # default sensitivity (0.0–1.0)
 
 ## Files
-- manifest.json         # MV3, permissions
-- background.js         # service worker, state machine, message bus
-- content.js            # injected script, mic capture, DOM unmute
-- audio-processor.js    # AudioWorkletProcessor, RMS VAD
-- popup.html            # UI: hard mute toggle, sensitivity slider
-- popup.js              # popup logic
+- manifest.json             # MV3, permissions
+- src/background.js         # service worker, state machine, message bus
+- src/content.js            # injected script, mic capture, DOM unmute
+- src/audio-processor.js    # AudioWorkletProcessor, RMS VAD
+- src/popup/popup.html      # UI: hard mute toggle, sensitivity slider
+- src/popup/popup.js        # popup logic
 
 ## Supported Platforms
 - meet.google.com       → click '[data-is-muted="true"]'

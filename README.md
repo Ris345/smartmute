@@ -15,19 +15,33 @@ Whereby, Discord, Skype for Web.
 
 No build step is required.
 
+## Project layout
+
+```
+manifest.json
+src/
+  background.js   # service worker, state machine, platform mic clicks
+  content.js       # injected VAD script
+  audio-processor.js  # orphaned AudioWorklet processor (kept for reference)
+  popup/
+    popup.html
+    popup.js
+test/               # Jest suite
+```
+
 ## How it works
 
-1. **content.js** opens a second microphone stream via `getUserMedia` and
+1. **src/content.js** opens a second microphone stream via `getUserMedia` and
    analyzes it every 30ms to detect speech vs. silence, using an adaptive
    noise floor rather than a fixed threshold.
 2. On a detected speech/silence transition, it sends `VAD_START` / `VAD_STOP`
    to the background service worker.
-3. **background.js** owns the state machine, persists state to
+3. **src/background.js** owns the state machine, persists state to
    `chrome.storage.local`, and is the single place responsible for clicking
    the platform's mic button (via `chrome.scripting.executeScript`) in
    response to those messages.
-4. **popup.js** shows current state and lets you toggle auto-mute on/off
-   (`DISABLED` vs. `SOFT_MUTED`) for the active tab.
+4. **src/popup/popup.js** shows current state and lets you toggle auto-mute
+   on/off (`DISABLED` vs. `SOFT_MUTED`) for the active tab.
 
 ### State machine
 

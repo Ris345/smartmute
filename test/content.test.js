@@ -64,7 +64,7 @@ describe('content.js VAD accumulator', () => {
       },
     };
 
-    require('../content.js');
+    require('../src/content.js');
     await flush();
 
     simulateFrames = (count, isSpeech) => {
