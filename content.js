@@ -134,7 +134,6 @@
           currentState = STATE.UNMUTED;
           speechMs = 0;
           console.log('[VAD] speech → unmuting');
-          platformUnmute();
           chrome.runtime.sendMessage({ type: 'VAD_START' });
         }
 
@@ -142,7 +141,6 @@
           currentState = STATE.SOFT_MUTED;
           silenceMs = 0;
           console.log('[VAD] silence → muting');
-          platformMute();
           chrome.runtime.sendMessage({ type: 'VAD_STOP' });
         }
       }, FRAME_MS);
